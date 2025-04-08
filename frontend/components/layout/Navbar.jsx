@@ -14,10 +14,7 @@ export function Navbar() {
   const [formattedEthBalance, setFormattedEthBalance] = useState("0.0000");
 
   // Get ETH balance of connected wallet
-  const { 
-    data: ethBalance,
-    isLoading: ethLoading
-  } = useBalance({
+  const { data: ethBalance, isLoading: ethLoading } = useBalance({
     address,
     watch: true,
     enabled: isConnected && !!address,
@@ -47,7 +44,12 @@ export function Navbar() {
         <div className="flex justify-between items-center">
           {/* Logo and Brand */}
           <div className="flex items-center">
-            <img src="/logo.svg" alt="RealTokenize Logo" width={32} height={32} />
+            <img
+              src="/logo.svg"
+              alt="RealTokenize Logo"
+              width={32}
+              height={32}
+            />
             <Link href="/" className="flex items-center ml-2">
               <span className="text-xl font-bold text-white">RealTokenize</span>
             </Link>
@@ -55,33 +57,45 @@ export function Navbar() {
 
           {/* Navigation Links */}
           <div className="flex space-x-8 mx-4">
-            <Link 
-              href="/" 
+            <Link
+              href="/"
               className={`px-3 py-2 text-white font-medium rounded-md ${
                 pathname === "/" ? "bg-white/20" : "hover:bg-white/10"
               }`}
             >
               Home
             </Link>
-            <Link 
-              href="/properties" 
+            <Link
+              href="/properties"
               className={`px-3 py-2 text-white font-medium rounded-md ${
                 pathname === "/properties" ? "bg-white/20" : "hover:bg-white/10"
               }`}
             >
               Properties
             </Link>
-            <Link 
-              href="/marketplace" 
+            <Link
+              href="/marketplace"
               className={`px-3 py-2 text-white font-medium rounded-md ${
-                pathname === "/marketplace" ? "bg-white/20" : "hover:bg-white/10"
+                pathname === "/marketplace"
+                  ? "bg-white/20"
+                  : "hover:bg-white/10"
               }`}
             >
               Marketplace
             </Link>
+            <Link
+              href="/transactions"
+              className={`px-3 py-2 text-white font-medium rounded-md ${
+                pathname === "/transactions"
+                  ? "bg-white/20"
+                  : "hover:bg-white/10"
+              }`}
+            >
+              Transactions
+            </Link>
             {(isAdmin || isRegulator) && (
-              <Link 
-                href="/vault" 
+              <Link
+                href="/vault"
                 className={`px-3 py-2 text-white font-medium rounded-md ${
                   pathname === "/vault" ? "bg-white/20" : "hover:bg-white/10"
                 }`}
@@ -90,10 +104,12 @@ export function Navbar() {
               </Link>
             )}
             {isRegulator && (
-              <Link 
-                href="/transfers" 
+              <Link
+                href="/transfers"
                 className={`px-3 py-2 text-white font-medium rounded-md ${
-                  pathname === "/transfers" ? "bg-white/20" : "hover:bg-white/10"
+                  pathname === "/transfers"
+                    ? "bg-white/20"
+                    : "hover:bg-white/10"
                 }`}
               >
                 Transfers
@@ -104,15 +120,15 @@ export function Navbar() {
           {/* Wallet Section */}
           <div className="flex items-center space-x-4">
             {isConnected && ethBalance && !ethLoading && (
-              <div 
-                variant="secondary" 
+              <div
+                variant="secondary"
                 className="py-2 px-3 bg-white/10 hover:bg-white/20 text-white"
                 disabled
               >
                 {formattedEthBalance} ETH
               </div>
             )}
-            <div className="relative" style={{ position: 'relative' }}>
+            <div className="relative" style={{ position: "relative" }}>
               <WalletDropdown />
             </div>
           </div>
@@ -120,4 +136,4 @@ export function Navbar() {
       </div>
     </nav>
   );
-} 
+}

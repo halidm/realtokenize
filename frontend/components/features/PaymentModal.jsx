@@ -1,7 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useContractWrite, usePrepareContractWrite, useWaitForTransaction } from "wagmi";
+import {
+  useContractWrite,
+  usePrepareContractWrite,
+  useWaitForTransaction,
+} from "wagmi";
 import { formatEther, parseEther } from "viem";
 import { useUser } from "@/context/UserContext";
 import RealEstateNFTABI from "@/contracts/RealEstateNFT.json";
@@ -11,9 +15,11 @@ import { formatAddress } from "@/lib/utils";
 import { Dialog } from "@/components/ui/Dialog";
 import { Alert } from "@/components/ui/Alert";
 import { Loader } from "@/components/ui/Loader";
+import { useTransactions } from "@/context/TransactionContext";
 
-export function PaymentModal({ isOpen, onClose, property, onPaymentSuccess, addTransaction }) {
-  const { address } = useUser();
+export function PaymentModal({ isOpen, onClose, property, onPaymentSuccess }) {
+  const { address, userRole } = useUser();
+  const { logTransaction } = useTransactions();
   const [paymentStatus, setPaymentStatus] = useState({
     isProcessing: false,
     error: null,
@@ -28,7 +34,7 @@ export function PaymentModal({ isOpen, onClose, property, onPaymentSuccess, addT
         isProcessing: false,
         error: null,
         success: null,
-        step: "ready"
+        step: "ready",
       });
     }
   }, [isOpen, property]);
@@ -38,12 +44,12 @@ export function PaymentModal({ isOpen, onClose, property, onPaymentSuccess, addT
     address: contractAddresses.Regulator,
     abi: RegulatorABI,
     functionName: "depositPayment",
-    args: property ? [property.tokenId] : [],
+    args: property ? [property.id] : [],
     value: property ? property.price : parseEther("0"),
     enabled: !!property && paymentStatus.step === "ready",
     onError: (error) => {
       console.error("Error preparing payment:", error);
-      setPaymentStatus(prev => ({
+      setPaymentStatus((prev) => ({
         ...prev,
         error: `Failed to prepare payment transaction: ${error.message}`,
       }));
@@ -62,20 +68,25 @@ export function PaymentModal({ isOpen, onClose, property, onPaymentSuccess, addT
     ...paymentConfig,
     onSuccess: (data) => {
       // Update status on successful transaction submission
-      setPaymentStatus(prev => ({
+      setPaymentStatus((prev) => ({
         ...prev,
         step: "sending",
-        isProcessing: true
+        isProcessing: true,
       }));
-      
-      // Add to transaction history
-      addTransaction({
+
+      // Log the transaction
+      logTransaction({
+        user: address,
+        userRole: userRole,
+        address: contractAddresses.Regulator,
+        description: `Payment sent for property #${property.id} (${formatEther(
+          property.price
+        )} ETH)`,
         hash: data.hash,
-        description: `Payment sent for property #${property.tokenId} (${formatEther(property.price)} ETH)`,
       });
     },
     onError: (error) => {
-      setPaymentStatus(prev => ({
+      setPaymentStatus((prev) => ({
         ...prev,
         isProcessing: false,
         error: `Payment failed: ${error.message}`,
@@ -84,47 +95,46 @@ export function PaymentModal({ isOpen, onClose, property, onPaymentSuccess, addT
   });
 
   // Wait for payment transaction
-  const { 
-    isLoading: isPaymentWaiting,
-    isSuccess: isPaymentConfirmed
-  } = useWaitForTransaction({
-    hash: paymentData?.hash,
-    enabled: !!paymentData?.hash,
-    onSuccess: () => {
-      setPaymentStatus(prev => ({
-        ...prev,
-        step: "complete",
-        isProcessing: false,
-        success: "Payment confirmed! The property has been transferred to your wallet."
-      }));
-      
-      // Notify parent component of successful payment
-      setTimeout(() => {
-        onPaymentSuccess();
-        onClose();
-      }, 3000);
-    },
-    onError: (error) => {
-      console.error("Error with payment transaction:", error);
-      setPaymentStatus(prev => ({
-        ...prev,
-        isProcessing: false,
-        error: `Payment transaction failed: ${error.message}`,
-        step: "ready" // Go back to ready state so they can try payment again
-      }));
-    },
-  });
+  const { isLoading: isPaymentWaiting, isSuccess: isPaymentConfirmed } =
+    useWaitForTransaction({
+      hash: paymentData?.hash,
+      enabled: !!paymentData?.hash,
+      onSuccess: () => {
+        setPaymentStatus((prev) => ({
+          ...prev,
+          step: "complete",
+          isProcessing: false,
+          success:
+            "Payment confirmed! The property has been transferred to your wallet.",
+        }));
+
+        // Notify parent component of successful payment
+        setTimeout(() => {
+          onPaymentSuccess();
+          onClose();
+        }, 3000);
+      },
+      onError: (error) => {
+        console.error("Error with payment transaction:", error);
+        setPaymentStatus((prev) => ({
+          ...prev,
+          isProcessing: false,
+          error: `Payment transaction failed: ${error.message}`,
+          step: "ready", // Go back to ready state so they can try payment again
+        }));
+      },
+    });
 
   // Handle payment action
   const handlePayment = () => {
     if (paymentStatus.isProcessing) return; // Prevent actions during processing
-    
+
     if (writePayment) {
       writePayment();
     } else {
-      setPaymentStatus(prev => ({
+      setPaymentStatus((prev) => ({
         ...prev,
-        error: "Payment function not available. Please try again."
+        error: "Payment function not available. Please try again.",
       }));
     }
   };
@@ -139,7 +149,9 @@ export function PaymentModal({ isOpen, onClose, property, onPaymentSuccess, addT
     }
 
     if (paymentStatus.step === "ready") {
-      return `Send Payment (${property ? formatEther(property.price) : "0"} ETH)`;
+      return `Send Payment (${
+        property ? formatEther(property.price) : "0"
+      } ETH)`;
     }
     if (paymentStatus.step === "complete") {
       return "Transaction Complete";
@@ -149,14 +161,12 @@ export function PaymentModal({ isOpen, onClose, property, onPaymentSuccess, addT
   };
 
   // Check if there's a current operation in progress
-  const isProcessing = 
-    paymentStatus.isProcessing ||
-    isPaymentLoading || 
-    isPaymentWaiting;
+  const isProcessing =
+    paymentStatus.isProcessing || isPaymentLoading || isPaymentWaiting;
 
   return (
-    <Dialog 
-      open={isOpen} 
+    <Dialog
+      open={isOpen}
       onClose={() => !isProcessing && onClose()}
       title="Complete Purchase"
       preventClose={isProcessing}
@@ -170,15 +180,19 @@ export function PaymentModal({ isOpen, onClose, property, onPaymentSuccess, addT
           </div>
           <div className="flex justify-between mb-2">
             <span className="text-gray-600">Price:</span>
-            <span className="font-semibold">{formatEther(property.price)} ETH</span>
+            <span className="font-semibold">
+              {formatEther(property.price)} ETH
+            </span>
           </div>
           <div className="flex justify-between mb-2">
             <span className="text-gray-600">Seller:</span>
-            <span className="font-mono text-sm">{formatAddress(property.seller)}</span>
+            <span className="font-mono text-sm">
+              {formatAddress(property.seller)}
+            </span>
           </div>
           <div className="flex justify-between mb-2">
             <span className="text-gray-600">Token ID:</span>
-            <span className="font-mono text-sm">{property.tokenId}</span>
+            <span className="font-mono text-sm">{property.id}</span>
           </div>
         </div>
       )}
@@ -205,8 +219,8 @@ export function PaymentModal({ isOpen, onClose, property, onPaymentSuccess, addT
         {paymentStatus.step === "ready" && (
           <div className="text-center mb-4">
             <p className="mb-4 text-sm text-gray-600">
-              Complete the payment to purchase this property. The payment will be held in escrow until
-              the transaction is finalized.
+              Complete the payment to purchase this property. The payment will
+              be held in escrow until the transaction is finalized.
             </p>
             <button
               onClick={handlePayment}
@@ -243,4 +257,4 @@ export function PaymentModal({ isOpen, onClose, property, onPaymentSuccess, addT
       </div>
     </Dialog>
   );
-} 
+}

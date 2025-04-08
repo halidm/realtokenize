@@ -25,12 +25,6 @@ export default function VaultPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [transactions, setTransactions] = useState([]);
-
-  // Add transaction to log
-  const addTransaction = (transaction) => {
-    setTransactions((prev) => [transaction, ...prev]);
-  };
 
   // Get NFTs in vault using a different approach
   useEffect(() => {
@@ -250,13 +244,12 @@ export default function VaultPage() {
                   There are no NFTs in the vault yet.
                 </Alert>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {vaultedNFTs.map((nft) => (
                     <NFTCard
                       key={nft.id}
                       nft={nft}
                       pendingListings={{}}
-                      addTransaction={addTransaction}
                       viewMode="all"
                       onRefresh={handleRefresh}
                     />
@@ -267,8 +260,8 @@ export default function VaultPage() {
           </Card>
         </div>
 
-        {/* Vault Deposit Form */}
-        <div className="w-full md:w-1/3 order-1 md:order-2 mb-6 md:mb-0">
+        {/* Deposit Form */}
+        <div className="w-full md:w-1/3 order-1 md:order-2">
           <VaultDepositForm onSuccess={handleDepositSuccess} />
         </div>
       </div>

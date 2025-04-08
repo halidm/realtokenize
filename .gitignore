@@ -1,5 +1,7 @@
 # Application data
-frontend/data/*
+frontend/data/transactions/*
+frontend/data/contracts/*
+frontend/data/wallets/*
 
 # Cache
 cache

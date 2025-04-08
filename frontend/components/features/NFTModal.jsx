@@ -13,9 +13,14 @@ import contractAddresses from "@/contracts/addresses.json";
 import "@/lib/buffer"; // Import Buffer polyfill
 import { Dialog } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";
+import { useTransactions } from "@/context/TransactionContext";
+import { useUser } from "@/context/UserContext";
 
-export default function NFTModal({ isOpen, onClose, addTransaction }) {
+export default function NFTModal({ isOpen, onClose }) {
   const { address } = useAccount();
+  const { userRole } = useUser();
+  const { logTransaction } = useTransactions();
+
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -68,6 +73,17 @@ export default function NFTModal({ isOpen, onClose, addTransaction }) {
     functionName: "mint",
     onSuccess: (data) => {
       console.log("Mint transaction successful:", data);
+
+      // Log the transaction
+      if (data?.hash) {
+        logTransaction({
+          user: address,
+          userRole: userRole,
+          address: contractAddresses.RealEstateNFT,
+          description: `Minted NFT: ${formData.name}`,
+          hash: data.hash,
+        });
+      }
     },
     onError: (error) => {
       console.error("Mint transaction error:", error);
@@ -79,8 +95,12 @@ export default function NFTModal({ isOpen, onClose, addTransaction }) {
     useWaitForTransaction({
       hash: mintData?.hash,
       onSuccess: (data) => {
-        // Close modal on successful transaction
-        onClose();
+        console.log("Transaction confirmed successfully:", data);
+        // Add a brief delay to allow indexers to update
+        setTimeout(() => {
+          // Close modal on successful transaction
+          onClose();
+        }, 2000); // 2 second delay to ensure blockchain state is updated
       },
     });
 
@@ -134,14 +154,6 @@ export default function NFTModal({ isOpen, onClose, addTransaction }) {
       mint({
         args: [address, dataUri],
       });
-
-      // Add transaction to log
-      if (mintData?.hash) {
-        addTransaction({
-          hash: mintData.hash,
-          description: `Minted NFT: ${formData.name}`,
-        });
-      }
     } catch (error) {
       console.error("Error minting NFT:", error);
     }

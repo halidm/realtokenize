@@ -16,9 +16,11 @@ import { Alert } from "@/components/ui/Alert";
 import { Loader } from "@/components/ui/Loader";
 import { useUser } from "@/context/UserContext";
 import { fetchNFTMetadata } from "@/lib/nftUtils";
+import { useTransactions } from "@/context/TransactionContext";
 
 export default function PendingTransfers({ filter = "all" }) {
-  const { isRegulator, address } = useUser();
+  const { isRegulator, address, userRole } = useUser();
+  const { logTransaction } = useTransactions();
   const [pendingTransfers, setPendingTransfers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedTransfer, setSelectedTransfer] = useState(null);
@@ -100,9 +102,22 @@ export default function PendingTransfers({ filter = "all" }) {
   const { write: approveTransfer, isLoading: isApproving } = useContractWrite({
     ...approveConfig,
     onSuccess: (data) => {
-      setSuccess(
-        `Transfer of NFT #${selectedTransfer.tokenId} approved. Transaction hash: ${data.hash}`
-      );
+      const successMessage = `Transfer of NFT #${selectedTransfer.tokenId} approved. Transaction hash: ${data.hash}`;
+      setSuccess(successMessage);
+
+      // Log the transaction to our centralized system
+      logTransaction({
+        user: address,
+        userRole: userRole,
+        address: contractAddresses.Regulator,
+        description: `Approved transfer of NFT #${
+          selectedTransfer.tokenId
+        } from ${formatAddress(selectedTransfer.from)} to ${formatAddress(
+          selectedTransfer.to
+        )}`,
+        hash: data.hash,
+      });
+
       setSelectedTransfer(null);
 
       // Refetch after a delay to allow the blockchain to update

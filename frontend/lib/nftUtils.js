@@ -28,6 +28,7 @@ export async function fetchNFTMetadata(tokenId) {
     }
 
     return {
+      id: tokenId.toString(),
       name: metadata.name || `Property #${tokenId}`,
       description: metadata.description || "No description available",
       image: metadata.image || "/images/placeholder-property.jpg",
@@ -35,6 +36,7 @@ export async function fetchNFTMetadata(tokenId) {
   } catch (error) {
     console.error("Error fetching NFT metadata:", error);
     return {
+      id: tokenId.toString(),
       name: `Property #${tokenId}`,
       description: "Error fetching metadata",
       image: "/images/placeholder-property.jpg",

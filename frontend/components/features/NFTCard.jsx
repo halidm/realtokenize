@@ -14,15 +14,18 @@ import NFTSellModal from "@/components/features/NFTSellModal";
 import contractAddresses from "@/contracts/addresses.json";
 import RealEstateNFTABI from "@/contracts/RealEstateNFT.json";
 import RegulatorABI from "@/contracts/Regulator.json";
+import { useTransactions } from "@/context/TransactionContext";
+import { useUser } from "@/context/UserContext";
 
 export default function NFTCard({
   nft,
-  pendingListings,
-  addTransaction,
+  pendingListings = {},
   viewMode,
   onRefresh,
 }) {
   const { address } = useAccount();
+  const { userRole } = useUser();
+  const { logTransaction } = useTransactions();
   const [isSellModalOpen, setIsSellModalOpen] = useState(false);
   const [transferStatus, setTransferStatus] = useState({
     loading: false,
@@ -37,11 +40,26 @@ export default function NFTCard({
 
   const handleCloseSellModal = () => {
     setIsSellModalOpen(false);
+    // Ensure proper refresh after modal is closed
+    if (typeof onRefresh === "function") {
+      console.log(`Triggering refresh from NFT ${nft.id} after modal close`);
+      // Slight delay to ensure blockchain state is updated
+      setTimeout(() => {
+        onRefresh();
+      }, 500);
+    }
   };
 
   // Check if this NFT is pending deposit
-  const pendingInfo = pendingListings[nft.id];
+  const pendingInfo = pendingListings && pendingListings[nft.id];
   const isPendingDeposit = !!pendingInfo;
+
+  // Log what we're seeing for debugging
+  useEffect(() => {
+    console.log(`NFT ${nft.id} - isPendingDeposit:`, isPendingDeposit);
+    console.log(`NFT ${nft.id} - pendingInfo:`, pendingInfo);
+    console.log(`NFT ${nft.id} - pendingListings:`, pendingListings);
+  }, [nft.id, isPendingDeposit, pendingInfo, pendingListings]);
 
   // Check if this NFT is currently being processed for approval or deposit
   const isBeingProcessed = transferStatus.loading;
@@ -76,9 +94,13 @@ export default function NFTCard({
         loading: true,
         step: "approving",
       });
-      addTransaction({
-        hash: data.hash,
+
+      logTransaction({
+        user: address,
+        userRole: userRole,
+        address: contractAddresses.RealEstateNFT,
         description: `Approved Regulator for property #${nft.id}`,
+        hash: data.hash,
       });
 
       // Wait for the transaction to complete
@@ -143,20 +165,32 @@ export default function NFTCard({
         step: "depositing",
         approved: true,
       });
-      addTransaction({
-        hash: data.hash,
+
+      logTransaction({
+        user: address,
+        userRole: userRole,
+        address: contractAddresses.Regulator,
         description: `Deposited property #${nft.id} into escrow`,
+        hash: data.hash,
       });
 
-      // After transaction is submitted, update UI
+      // After transaction is submitted, update UI to show success
       setTimeout(() => {
-        setTransferStatus({ loading: false, step: null });
-        onRefresh?.(); // Call the refresh callback if provided
-      }, 5000);
+        setTransferStatus({
+          loading: false,
+          step: "deposit-success",
+          approved: true,
+        });
+
+        // Refresh the UI after a brief delay to allow viewing success state
+        setTimeout(() => {
+          onRefresh?.(); // Call the refresh callback if provided
+        }, 2000);
+      }, 3000);
     },
     onError: (error) => {
       console.error("Error depositing NFT:", error);
-      setTransferStatus({ loading: false, step: null });
+      setTransferStatus({ loading: false, step: "deposit-error" });
     },
   });
 
@@ -218,15 +252,75 @@ export default function NFTCard({
           </p>
           {isBeingProcessed ? (
             <button
-              className="w-full py-2 px-3 bg-gray-300 text-gray-700 rounded cursor-not-allowed text-sm"
+              className={`w-full py-2 px-3 rounded cursor-not-allowed text-sm flex items-center justify-center ${
+                transferStatus.step === "depositing"
+                  ? "bg-yellow-500 text-white"
+                  : "bg-gray-300 text-gray-700"
+              }`}
               disabled
             >
               {transferStatus.step === "approving" && "Approving..."}
               {transferStatus.step === "approved" && "Approved!"}
-              {transferStatus.step === "depositing" && "Depositing..."}
+              {transferStatus.step === "depositing" && (
+                <>
+                  <svg
+                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  Depositing to Escrow...
+                </>
+              )}
               {transferStatus.step === "approval-timeout" &&
                 "Approval taking too long"}
             </button>
+          ) : transferStatus.step === "deposit-success" ? (
+            <button
+              className="w-full py-2 px-3 bg-green-600 text-white rounded text-sm flex items-center justify-center"
+              disabled
+            >
+              <svg
+                className="h-4 w-4 mr-1"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+              Deposited Successfully!
+            </button>
+          ) : transferStatus.step === "deposit-error" ? (
+            <div className="space-y-2">
+              <div className="text-xs text-red-600">
+                Failed to deposit. Please try again.
+              </div>
+              <button
+                onClick={handleDepositNFT}
+                className="w-full py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors text-sm"
+              >
+                Retry Deposit
+              </button>
+            </div>
           ) : transferStatus.approved ? (
             <button
               onClick={handleDepositNFT}
@@ -290,7 +384,7 @@ export default function NFTCard({
             e.target.src = "/images/placeholder-property.jpg";
           }}
         />
-        <div className="absolute top-2 right-2">
+        <div className="absolute top-2 right-2 flex space-x-1">
           {nft.isInVault ? (
             <span className="bg-purple-600 text-white text-xs px-2 py-1 rounded-full">
               In Vault
@@ -308,8 +402,8 @@ export default function NFTCard({
             </span>
           )}
 
-          {pendingListings[nft.id] && (
-            <span className="ml-2 bg-yellow-600 text-white text-xs px-2 py-1 rounded-full">
+          {pendingListings && pendingListings[nft.id] && (
+            <span className="bg-yellow-600 text-white text-xs px-2 py-1 rounded-full">
               Awaiting Deposit
             </span>
           )}
@@ -359,7 +453,6 @@ export default function NFTCard({
         isOpen={isSellModalOpen}
         onClose={handleCloseSellModal}
         nft={nft}
-        addTransaction={addTransaction}
       />
     </div>
   );

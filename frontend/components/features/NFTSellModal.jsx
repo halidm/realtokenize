@@ -7,9 +7,13 @@ import RealEstateNFTABI from "@/contracts/RealEstateNFT.json";
 import RegulatorABI from "@/contracts/Regulator.json";
 import contractAddresses from "@/contracts/addresses.json";
 import { Dialog } from "@/components/ui/Dialog";
+import { useTransactions } from "@/context/TransactionContext";
+import { useUser } from "@/context/UserContext";
 
-export default function NFTSellModal({ isOpen, onClose, nft, addTransaction }) {
+export default function NFTSellModal({ isOpen, onClose, nft }) {
   const { address } = useAccount();
+  const { userRole } = useUser();
+  const { logTransaction } = useTransactions();
   const [sellInfo, setSellInfo] = useState({
     price: "",
     buyerAddress: "",
@@ -30,9 +34,12 @@ export default function NFTSellModal({ isOpen, onClose, nft, addTransaction }) {
     useContractWrite({
       ...listingConfig,
       onSuccess: (data) => {
-        addTransaction({
-          hash: data.hash,
+        logTransaction({
+          user: address,
+          userRole: userRole,
+          address: contractAddresses.Regulator,
           description: `Created listing for property #${nft?.id}`,
+          hash: data.hash,
         });
         setStep("approving");
         // Once listing is created, proceed to approval
@@ -59,9 +66,12 @@ export default function NFTSellModal({ isOpen, onClose, nft, addTransaction }) {
   const { write: approveNFT, isLoading: isApproving } = useContractWrite({
     ...approveConfig,
     onSuccess: (data) => {
-      addTransaction({
-        hash: data.hash,
+      logTransaction({
+        user: address,
+        userRole: userRole,
+        address: contractAddresses.RealEstateNFT,
         description: `Approved Regulator for property #${nft?.id}`,
+        hash: data.hash,
       });
       setStep("depositing");
       // Once approval is granted, proceed to deposit
@@ -85,9 +95,12 @@ export default function NFTSellModal({ isOpen, onClose, nft, addTransaction }) {
   const { write: depositNFT, isLoading: isDepositing } = useContractWrite({
     ...depositConfig,
     onSuccess: (data) => {
-      addTransaction({
-        hash: data.hash,
+      logTransaction({
+        user: address,
+        userRole: userRole,
+        address: contractAddresses.Regulator,
         description: `Deposited property #${nft?.id} into escrow`,
+        hash: data.hash,
       });
       setStep("completed");
       setTimeout(() => {
@@ -151,6 +164,9 @@ export default function NFTSellModal({ isOpen, onClose, nft, addTransaction }) {
           </svg>
           <p className="font-bold text-lg">Success!</p>
           <p>Property has been listed and deposited in escrow.</p>
+          <p className="text-sm mt-2">
+            The buyer will be notified to complete the payment.
+          </p>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -211,49 +227,178 @@ export default function NFTSellModal({ isOpen, onClose, nft, addTransaction }) {
 
       <div className="mt-4 p-3 bg-gray-50 rounded-md text-sm text-gray-600">
         <p className="font-medium mb-2">Listing Process:</p>
-        <ol className="list-decimal list-inside space-y-1">
-          <li
-            className={
-              step === "listing"
-                ? "text-blue-600 font-medium"
-                : step !== "initial"
-                ? "text-green-600 line-through"
-                : ""
-            }
-          >
-            Create listing {step !== "initial" && step !== "listing" && "✓"}
+        <ol className="list-none space-y-3">
+          <li className="flex items-center">
+            <div
+              className={`flex-shrink-0 w-6 h-6 rounded-full mr-3 flex items-center justify-center ${
+                step === "listing"
+                  ? "bg-blue-500 text-white animate-pulse"
+                  : step !== "initial"
+                  ? "bg-green-500 text-white"
+                  : "bg-gray-200 text-gray-600"
+              }`}
+            >
+              {step !== "initial" && step !== "listing" ? "✓" : "1"}
+            </div>
+            <span
+              className={`${
+                step === "listing"
+                  ? "text-blue-600 font-medium"
+                  : step !== "initial"
+                  ? "text-green-600"
+                  : "text-gray-600"
+              } ${
+                step !== "initial" && step !== "listing" ? "line-through" : ""
+              }`}
+            >
+              Create listing
+              {step === "listing" && (
+                <span className="ml-2 inline-block animate-pulse">
+                  <svg
+                    className="animate-spin h-4 w-4 text-blue-500 inline"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                </span>
+              )}
+            </span>
           </li>
-          <li
-            className={
-              step === "approving"
-                ? "text-blue-600 font-medium"
-                : step !== "initial" &&
-                  step !== "listing" &&
-                  step !== "approving"
-                ? "text-green-600 line-through"
-                : ""
-            }
-          >
-            Approve NFT{" "}
-            {step !== "initial" &&
-              step !== "listing" &&
-              step !== "approving" &&
-              "✓"}
+
+          <li className="flex items-center">
+            <div
+              className={`flex-shrink-0 w-6 h-6 rounded-full mr-3 flex items-center justify-center ${
+                step === "approving"
+                  ? "bg-blue-500 text-white animate-pulse"
+                  : step !== "initial" && step !== "listing"
+                  ? "bg-green-500 text-white"
+                  : "bg-gray-200 text-gray-600"
+              }`}
+            >
+              {step !== "initial" && step !== "listing" && step !== "approving"
+                ? "✓"
+                : "2"}
+            </div>
+            <span
+              className={`${
+                step === "approving"
+                  ? "text-blue-600 font-medium"
+                  : step !== "initial" && step !== "listing"
+                  ? "text-green-600"
+                  : "text-gray-600"
+              } ${
+                step !== "initial" && step !== "listing" && step !== "approving"
+                  ? "line-through"
+                  : ""
+              }`}
+            >
+              Approve NFT
+              {step === "approving" && (
+                <span className="ml-2 inline-block animate-pulse">
+                  <svg
+                    className="animate-spin h-4 w-4 text-blue-500 inline"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                </span>
+              )}
+            </span>
           </li>
-          <li
-            className={
-              step === "depositing"
-                ? "text-blue-600 font-medium"
-                : step === "completed"
-                ? "text-green-600 line-through"
-                : ""
-            }
-          >
-            Deposit NFT to escrow {step === "completed" && "✓"}
+
+          <li className="flex items-center">
+            <div
+              className={`flex-shrink-0 w-6 h-6 rounded-full mr-3 flex items-center justify-center ${
+                step === "depositing"
+                  ? "bg-blue-500 text-white animate-pulse"
+                  : step === "completed"
+                  ? "bg-green-500 text-white"
+                  : "bg-gray-200 text-gray-600"
+              }`}
+            >
+              {step === "completed" ? "✓" : "3"}
+            </div>
+            <span
+              className={`${
+                step === "depositing"
+                  ? "text-blue-600 font-medium"
+                  : step === "completed"
+                  ? "text-green-600"
+                  : "text-gray-600"
+              } ${step === "completed" ? "line-through" : ""}`}
+            >
+              Deposit NFT to escrow
+              {step === "depositing" && (
+                <span className="ml-2 inline-block animate-pulse">
+                  <svg
+                    className="animate-spin h-4 w-4 text-blue-500 inline"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                </span>
+              )}
+            </span>
           </li>
-          <li>Buyer will be notified to send payment</li>
+
+          <li className="flex items-center">
+            <div className="flex-shrink-0 w-6 h-6 rounded-full mr-3 flex items-center justify-center bg-gray-200 text-gray-600">
+              4
+            </div>
+            <span
+              className={
+                step === "completed"
+                  ? "text-blue-600 font-medium"
+                  : "text-gray-600"
+              }
+            >
+              Buyer will be notified to send payment
+            </span>
+          </li>
         </ol>
       </div>
     </Dialog>
   );
-} 
+}

@@ -11,9 +11,11 @@ import contractAddresses from "@/contracts/addresses.json";
 import VaultABI from "@/contracts/Vault.json";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
+import { useTransactions } from "@/context/TransactionContext";
 
-export default function NFTGallery({ addTransaction }) {
+export default function NFTGallery() {
   const { address, isConnected } = useAccount();
+  const { logTransaction } = useTransactions();
   const [nfts, setNfts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -37,6 +39,16 @@ export default function NFTGallery({ addTransaction }) {
 
   const handleCloseNFTModal = () => {
     setIsNFTModalOpen(false);
+
+    // Force immediate refresh
+    setLoading(true);
+    setError(null);
+
+    // Execute a delayed refresh to ensure blockchain state is updated
+    setTimeout(() => {
+      console.log("Executing delayed refresh after NFT modal close");
+      setRefreshKey((prevKey) => prevKey + 1);
+    }, 1000);
   };
 
   // Check if connected wallet is admin
@@ -57,33 +69,48 @@ export default function NFTGallery({ addTransaction }) {
   }, [isConnected]);
 
   // Get user's listings that need deposit
-  const { data: pendingListingsData } = useContractRead({
-    address: contractAddresses.Regulator,
-    abi: RegulatorABI,
-    functionName: "getPropertiesListedBySeller",
-    args: [address],
-    enabled: isConnected && !!address,
-    watch: true,
-  });
+  const { data: pendingListingsData, refetch: refetchPendingListings } =
+    useContractRead({
+      address: contractAddresses.Regulator,
+      abi: RegulatorABI,
+      functionName: "getPropertiesListedBySeller",
+      args: [address],
+      enabled: isConnected && !!address,
+      watch: true,
+    });
 
   // Process pending listings data
   useEffect(() => {
     if (pendingListingsData) {
+      console.log("Raw pending listings data:", pendingListingsData);
       const pendingMap = {};
       pendingListingsData.forEach((listing) => {
         if (!listing.nftDeposited) {
-          pendingMap[listing.tokenId.toString()] = {
+          const tokenIdStr = listing.tokenId.toString();
+          console.log(
+            `Found pending listing for token ${tokenIdStr}:`,
+            listing
+          );
+          pendingMap[tokenIdStr] = {
             buyer: listing.buyer,
             price: listing.price,
           };
         }
       });
+      console.log("Processed pending listings map:", pendingMap);
       setPendingListings(pendingMap);
     }
   }, [pendingListingsData]);
 
+  // Refresh pending listings when refreshKey changes
+  useEffect(() => {
+    if (isConnected && address) {
+      refetchPendingListings();
+    }
+  }, [refreshKey, isConnected, address, refetchPendingListings]);
+
   // Get total supply of NFTs
-  const { data: totalSupply } = useContractRead({
+  const { data: totalSupply, refetch: refetchTotalSupply } = useContractRead({
     address: contractAddresses.RealEstateNFT,
     abi: RealEstateNFTABI,
     functionName: "totalSupply",
@@ -91,7 +118,7 @@ export default function NFTGallery({ addTransaction }) {
   });
 
   // Get balance of NFTs owned by the user
-  const { data: balance } = useContractRead({
+  const { data: balance, refetch: refetchBalance } = useContractRead({
     address: contractAddresses.RealEstateNFT,
     abi: RealEstateNFTABI,
     functionName: "balanceOf",
@@ -105,6 +132,26 @@ export default function NFTGallery({ addTransaction }) {
       setLoading(false);
     },
   });
+
+  // Trigger refetch when refreshKey changes
+  useEffect(() => {
+    if (isConnected) {
+      console.log("Refresh triggered, fetching latest NFT data...");
+      if (isAdmin) {
+        refetchTotalSupply();
+      }
+      if (address) {
+        refetchBalance();
+      }
+    }
+  }, [
+    refreshKey,
+    isConnected,
+    isAdmin,
+    address,
+    refetchTotalSupply,
+    refetchBalance,
+  ]);
 
   // Fetch NFTs when balance or totalSupply is available
   useEffect(() => {
@@ -292,145 +339,91 @@ export default function NFTGallery({ addTransaction }) {
     };
   };
 
-  // Render loading state
-  if (loading) {
-    return <div className="text-center py-8">Loading NFTs...</div>;
-  }
+  return (
+    <>
+      <Card>
+        <CardHeader className="relative flex items-center justify-between">
+          <CardTitle>
+            {viewMode === "owned" ? "My Properties" : "All Properties"}
+          </CardTitle>
 
-  // Render error state
-  if (error) {
-    return (
-      <Card className="text-center p-8 bg-red-50 border border-red-200">
-        <CardHeader>
-          <CardTitle className="text-xl font-medium text-red-800">Error</CardTitle>
+          <div className="flex space-x-2">
+            {isAdmin && (
+              <div className="flex rounded-md shadow-sm">
+                <Button
+                  variant={viewMode === "owned" ? "primary" : "secondary"}
+                  onClick={() => setViewMode("owned")}
+                  className="rounded-l-md rounded-r-none px-4"
+                >
+                  My Properties
+                </Button>
+                <Button
+                  variant={viewMode === "all" ? "primary" : "secondary"}
+                  onClick={() => setViewMode("all")}
+                  className="rounded-r-md rounded-l-none px-4"
+                >
+                  All Properties
+                </Button>
+              </div>
+            )}
+
+            <Button onClick={handleRefresh} variant="secondary">
+              Refresh
+            </Button>
+
+            {isAdmin && (
+              <Button onClick={handleOpenNFTModal} variant="primary">
+                Create NFT
+              </Button>
+            )}
+          </div>
         </CardHeader>
+
         <CardContent>
-          <p className="text-red-600 mb-4">{error}</p>
-          <Card className="p-4 bg-white text-gray-700 text-left">
-            <CardContent>
-              <p className="font-medium">Troubleshooting Steps:</p>
-              <ol className="list-decimal list-inside text-sm mt-2">
-                <li>
-                  Make sure you're connected to the correct network (Hardhat
-                  localhost)
-                </li>
-                <li>Verify that the contracts are deployed correctly</li>
-                <li>
-                  Check that the contract addresses in addresses.json are correct
-                </li>
-                <li>Restart the Hardhat node and redeploy the contracts</li>
-              </ol>
-            </CardContent>
-          </Card>
+          {!isConnected ? (
+            <div className="text-center py-10">
+              <p className="mb-4">
+                Please connect your wallet to view properties
+              </p>
+            </div>
+          ) : loading ? (
+            <div className="text-center py-10">
+              <p>Loading properties...</p>
+            </div>
+          ) : error ? (
+            <div className="text-center py-10 text-red-500">
+              <p>{error}</p>
+            </div>
+          ) : nfts.length === 0 ? (
+            <div className="text-center py-10">
+              <p>No properties found.</p>
+              {isAdmin && (
+                <Button
+                  onClick={handleOpenNFTModal}
+                  variant="primary"
+                  className="mt-4"
+                >
+                  Create your first NFT
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-6">
+              {nfts.map((nft) => (
+                <NFTCard
+                  key={nft.id}
+                  nft={nft}
+                  isAdmin={isAdmin}
+                  onUpdate={handleRefresh}
+                  pendingListings={pendingListings}
+                />
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
-    );
-  }
 
-  // Main gallery content
-  return (
-    <Card className="flex-1">
-      <CardHeader>
-        <div className="flex justify-between items-center">
-          <CardTitle className="text-xl font-bold">Real Estate NFTs</CardTitle>
-          <Button
-            onClick={handleRefresh}
-            variant="link"
-            size="sm"
-            className="text-xs text-blue-500"
-          >
-            Refresh
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {isAdmin && (
-          <div className="flex justify-between items-center mb-4">
-            <Button
-              onClick={handleOpenNFTModal}
-              variant="primary"
-            >
-              Mint NFT Property
-            </Button>
-          </div>
-        )}
-
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-xl font-semibold">
-            {viewMode === "owned" ? "Your Properties" : "All Properties"}
-          </h3>
-          <div className="flex border rounded-md overflow-hidden">
-            <Button
-              className={`px-3 py-1 text-sm rounded-none ${
-                viewMode === "owned"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-              onClick={() => setViewMode("owned")}
-              variant={viewMode === "owned" ? "primary" : "secondary"}
-            >
-              My NFTs
-            </Button>
-            <Button
-              className={`px-3 py-1 text-sm rounded-none ${
-                viewMode === "all"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-              onClick={() => setViewMode("all")}
-              variant={viewMode === "all" ? "primary" : "secondary"}
-            >
-              All NFTs
-            </Button>
-          </div>
-        </div>
-
-        {nfts.length === 0 ? (
-          <Card className="text-center p-8 bg-gray-50 border border-gray-200">
-            <CardContent>
-              <h3 className="text-xl font-medium text-gray-800 mb-2">
-                No Properties Available
-              </h3>
-              <p className="text-gray-600 mb-4">
-                {viewMode === "owned"
-                  ? "You don't own any real estate NFTs yet."
-                  : "There are no real estate NFTs minted yet."}
-                {isAdmin && " As an admin, you can mint new properties."}
-              </p>
-              <Card className="p-4 bg-blue-50 text-blue-700 inline-block">
-                <CardContent>
-                  <p className="font-medium">Getting Started</p>
-                  <ol className="list-decimal list-inside text-sm mt-2 text-left">
-                    <li>Connect with the Admin wallet</li>
-                    <li>Use the Admin Panel to mint new properties</li>
-                    <li>Properties will appear here once minted</li>
-                  </ol>
-                </CardContent>
-              </Card>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {nfts.map((nft) => (
-              <NFTCard
-                key={nft.id}
-                nft={nft}
-                pendingListings={pendingListings}
-                addTransaction={addTransaction}
-                viewMode={viewMode}
-                onRefresh={handleRefresh}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Modals */}
-        <NFTModal
-          isOpen={isNFTModalOpen}
-          onClose={handleCloseNFTModal}
-          addTransaction={addTransaction}
-        />
-      </CardContent>
-    </Card>
+      <NFTModal isOpen={isNFTModalOpen} onClose={handleCloseNFTModal} />
+    </>
   );
-} 
+}
