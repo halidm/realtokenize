@@ -81,7 +81,7 @@ export function PaymentModal({ isOpen, onClose, property, onPaymentSuccess }) {
         address: contractAddresses.Regulator,
         description: `Payment sent for property #${property.id} (${formatEther(
           property.price
-        )} ETH)`,
+        )}Mn AED)`,
         hash: data.hash,
       });
     },
@@ -151,7 +151,7 @@ export function PaymentModal({ isOpen, onClose, property, onPaymentSuccess }) {
     if (paymentStatus.step === "ready") {
       return `Send Payment (${
         property ? formatEther(property.price) : "0"
-      } ETH)`;
+      }Mn AED)`;
     }
     if (paymentStatus.step === "complete") {
       return "Transaction Complete";
@@ -181,7 +181,7 @@ export function PaymentModal({ isOpen, onClose, property, onPaymentSuccess }) {
           <div className="flex justify-between mb-2">
             <span className="text-gray-600">Price:</span>
             <span className="font-semibold">
-              {formatEther(property.price)} ETH
+              {formatEther(property.price)}Mn AED
             </span>
           </div>
           <div className="flex justify-between mb-2">

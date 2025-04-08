@@ -28,11 +28,11 @@ export function Navbar() {
         setFormattedEthBalance(
           ethAmount.toLocaleString(undefined, {
             minimumFractionDigits: 0,
-            maximumFractionDigits: 4,
+            maximumFractionDigits: 3,
           })
         );
       } catch (error) {
-        console.error("Error formatting ETH balance:", error);
+        console.error("Error formatting AED balance:", error);
         setFormattedEthBalance("0.0000");
       }
     }
@@ -125,7 +125,7 @@ export function Navbar() {
                 className="py-2 px-3 bg-white/10 hover:bg-white/20 text-white"
                 disabled
               >
-                {formattedEthBalance} ETH
+                {formattedEthBalance}Mn AED
               </div>
             )}
             <div className="relative" style={{ position: "relative" }}>

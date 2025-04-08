@@ -248,7 +248,7 @@ export default function NFTCard({
       return (
         <div className="mt-3 grid grid-cols-1 gap-2">
           <p className="text-xs text-gray-600 mb-1">
-            Listed for {formatEther(pendingInfo.price)} ETH
+            Listed for {formatEther(pendingInfo.price)}Mn AED
           </p>
           {isBeingProcessed ? (
             <button

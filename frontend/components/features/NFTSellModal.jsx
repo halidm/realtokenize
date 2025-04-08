@@ -175,7 +175,7 @@ export default function NFTSellModal({ isOpen, onClose, nft }) {
               htmlFor="price"
               className="block text-sm font-medium text-gray-700 mb-2"
             >
-              Price (ETH)
+              Price (AED (Mn))
             </label>
             <input
               id="price"

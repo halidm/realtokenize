@@ -38,9 +38,9 @@ async function main() {
     console.log(
       "\n======================\n[2/4] Cleaning up the data directory..."
     );
-    await runCommand("rm", ["-rf", "../frontend/data/contracts/*"]);
-    await runCommand("rm", ["-rf", "../frontend/data/wallets/*"]);
-    await runCommand("rm", ["-rf", "../frontend/data/transactions/*"]);
+    await runCommand("rm", ["-rf", "./frontend/data/contracts/*"]);
+    await runCommand("rm", ["-rf", "./frontend/data/wallets/*"]);
+    await runCommand("rm", ["-rf", "./frontend/data/transactions/*"]);
     await runCommand("npx", ["hardhat", "clean"]);
 
     // Step 3: Create demo wallets

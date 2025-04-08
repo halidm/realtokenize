@@ -7,7 +7,7 @@ import { useUser } from "@/context/UserContext";
 
 export function PropertyCard({ property, onPaymentClick }) {
   const { isRegulator, address } = useUser();
-  
+
   const getStatusText = () => {
     if (property.nftDeposited && property.paymentReceived) {
       return "Sale Complete";
@@ -17,7 +17,7 @@ export function PropertyCard({ property, onPaymentClick }) {
       return "Awaiting NFT Deposit";
     }
   };
-  
+
   const getStatusBadge = () => {
     if (property.nftDeposited && !property.paymentReceived) {
       return (
@@ -39,11 +39,11 @@ export function PropertyCard({ property, onPaymentClick }) {
       );
     }
   };
-  
+
   const canPay = () => {
     return (
-      !isRegulator && 
-      property.nftDeposited && 
+      !isRegulator &&
+      property.nftDeposited &&
       !property.paymentReceived &&
       property.buyer.toLowerCase() === address?.toLowerCase()
     );
@@ -62,39 +62,28 @@ export function PropertyCard({ property, onPaymentClick }) {
             e.target.src = "/images/placeholder-property.jpg";
           }}
         />
-        <div className="absolute top-2 right-2">
-          {getStatusBadge()}
-        </div>
+        <div className="absolute top-2 right-2">{getStatusBadge()}</div>
       </div>
       <div className="p-4">
-        <h3 className="font-semibold text-lg mb-2">
-          {property.name}
-        </h3>
-        <p className="text-sm text-gray-600 mb-4">
-          {property.description}
-        </p>
+        <h3 className="font-semibold text-lg mb-2">{property.name}</h3>
+        <p className="text-sm text-gray-600 mb-4">{property.description}</p>
         <div className="space-y-1 text-sm mb-4">
           <p>
             <span className="font-medium">Price:</span>{" "}
-            {formatEther(property.price)} ETH
+            {formatEther(property.price)}Mn AED
           </p>
           <p>
             <span className="font-medium">Seller:</span>{" "}
-            <span className="font-mono">
-              {formatAddress(property.seller)}
-            </span>
+            <span className="font-mono">{formatAddress(property.seller)}</span>
           </p>
           {isRegulator && (
             <p>
               <span className="font-medium">Buyer:</span>{" "}
-              <span className="font-mono">
-                {formatAddress(property.buyer)}
-              </span>
+              <span className="font-mono">{formatAddress(property.buyer)}</span>
             </p>
           )}
           <p>
-            <span className="font-medium">Status:</span>{" "}
-            {getStatusText()}
+            <span className="font-medium">Status:</span> {getStatusText()}
           </p>
         </div>
 
@@ -104,7 +93,7 @@ export function PropertyCard({ property, onPaymentClick }) {
               onClick={() => onPaymentClick(property)}
               className="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:bg-gray-400"
             >
-              Pay Now: {formatEther(property.price)} ETH
+              Pay Now: {formatEther(property.price)}Mn AED
             </button>
             <div className="mt-2 text-xs text-gray-500">
               Click to send payment and complete the purchase
@@ -114,4 +103,4 @@ export function PropertyCard({ property, onPaymentClick }) {
       </div>
     </div>
   );
-} 
+}

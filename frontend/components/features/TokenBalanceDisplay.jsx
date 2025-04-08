@@ -51,7 +51,7 @@ export function TokenBalanceDisplay() {
       setFormattedEthBalance(
         ethAmount.toLocaleString(undefined, {
           minimumFractionDigits: 0,
-          maximumFractionDigits: 4,
+          maximumFractionDigits: 3,
         })
       );
     }
@@ -67,8 +67,8 @@ export function TokenBalanceDisplay() {
       </Card>
       <Card className="bg-gray-100">
         <CardContent className="p-4">
-          <p className="text-sm text-gray-500">ETH Balance</p>
-          <p className="text-2xl font-bold">{formattedEthBalance} ETH</p>
+          <p className="text-sm text-gray-500">AED Balance</p>
+          <p className="text-2xl font-bold">{formattedEthBalance}Mn AED</p>
         </CardContent>
       </Card>
     </div>

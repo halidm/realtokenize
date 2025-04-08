@@ -3,7 +3,11 @@
 import { useState, useEffect } from "react";
 import { useConnect, useDisconnect } from "wagmi";
 import { useUser } from "@/context/UserContext";
-import { Dropdown, DropdownItem, DropdownSection } from "@/components/ui/Dropdown";
+import {
+  Dropdown,
+  DropdownItem,
+  DropdownSection,
+} from "@/components/ui/Dropdown";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 
@@ -15,15 +19,15 @@ export function WalletDropdown() {
   const [connectionError, setConnectionError] = useState(null);
 
   const { disconnect } = useDisconnect();
-  const { 
-    address, 
-    isConnected, 
-    userRole, 
-    saveWalletData, 
+  const {
+    address,
+    isConnected,
+    userRole,
+    saveWalletData,
     getWalletData,
-    removeWalletData 
+    removeWalletData,
   } = useUser();
-  
+
   const { connect, connectors, isLoading, pendingConnector } = useConnect({
     onSuccess(data) {
       setIsConnecting(false);
@@ -44,13 +48,13 @@ export function WalletDropdown() {
     const loadWallets = async () => {
       try {
         setLoading(true);
-        
+
         // Fetch wallets from the API
         const response = await fetch("/api/wallets");
         if (!response.ok) {
           throw new Error("Failed to fetch wallet data");
         }
-        
+
         const wallets = await response.json();
         setDemoWallets(wallets);
       } catch (error) {
@@ -69,7 +73,7 @@ export function WalletDropdown() {
     if (walletData && !isConnected && !isLoading) {
       try {
         const { role } = walletData;
-        
+
         if (role) {
           setIsConnecting(true);
           // Add connecting class to body
@@ -77,7 +81,7 @@ export function WalletDropdown() {
 
           const demoConnector = connectors.find((c) => c.id === "demoWallet");
           if (demoConnector) {
-            connect({ connector: demoConnector }).catch(err => {
+            connect({ connector: demoConnector }).catch((err) => {
               console.error("Auto-connect error:", err);
               setConnectionError(err.message);
               setIsConnecting(false);
@@ -98,16 +102,16 @@ export function WalletDropdown() {
       // Clear any previous errors and set connecting state
       setConnectionError(null);
       setIsConnecting(true);
-      
+
       // Add connecting class to body
       document.body.classList.add("wallet-connecting");
-      
+
       const wallet = demoWallets[role];
       if (isConnected) {
         console.log("Switching wallet...");
         await disconnect();
       }
-      
+
       // Save wallet information
       saveWalletData({
         role,
@@ -128,7 +132,7 @@ export function WalletDropdown() {
           throw error;
         }
       }
-      
+
       setIsConnecting(false);
     } catch (error) {
       console.error("Error connecting wallet:", error);
@@ -177,7 +181,7 @@ export function WalletDropdown() {
   const getRoleLabel = (role) => {
     switch (role) {
       case "admin":
-        return "Administrator";
+        return "RE Developer";
       case "regulator":
         return "Regulator";
       case "user1":
@@ -190,17 +194,21 @@ export function WalletDropdown() {
   };
 
   const walletButton = (
-    <div 
-      className={`px-4 py-2 rounded-md font-bold flex text-white text-lg items-center transition-colors duration-200 ${getRoleColor(userRole)}`}
+    <div
+      className={`px-4 py-2 rounded-md font-bold flex text-white text-lg items-center transition-colors duration-200 ${getRoleColor(
+        userRole
+      )}`}
     >
-      {isConnecting ? "Connecting..." : (isConnected ? getRoleLabel(userRole) : "Connect Wallet")}
+      {isConnecting
+        ? "Connecting..."
+        : isConnected
+        ? getRoleLabel(userRole)
+        : "Connect Wallet"}
     </div>
-  )
+  );
 
-  if (loading) {  
-    return (
-      walletButton
-    );
+  if (loading) {
+    return walletButton;
   }
 
   if (!demoWallets) {
@@ -209,9 +217,7 @@ export function WalletDropdown() {
 
   return (
     <Dropdown
-      trigger={
-        walletButton
-      }
+      trigger={walletButton}
       align="end"
       width="w-64"
       className="dropdown-wallet"
@@ -220,7 +226,7 @@ export function WalletDropdown() {
         <Alert variant="error" className="mb-2 text-sm">
           {connectionError}
           <div className="text-xs mt-1">
-            Make sure your local Hardhat node is running          
+            Make sure your local Hardhat node is running
           </div>
         </Alert>
       )}
@@ -236,7 +242,11 @@ export function WalletDropdown() {
               <div className="font-medium">{getRoleLabel(userRole)}</div>
               <div className="text-xs mt-1 flex justify-between items-center">
                 <span className="truncate mr-2">
-                  {address ? `${address.substring(0, 12)}...${address.substring(address.length - 4)}` : "..."}
+                  {address
+                    ? `${address.substring(0, 12)}...${address.substring(
+                        address.length - 4
+                      )}`
+                    : "..."}
                 </span>
                 <Button
                   variant="dark"
@@ -258,7 +268,9 @@ export function WalletDropdown() {
             key={role}
             onClick={() => connectWallet(role)}
             disabled={isConnecting}
-            className={`rounded-md ${getRoleButtonColor(role)} hover:bg-gray-500 hover:text-white`}
+            className={`rounded-md ${getRoleButtonColor(
+              role
+            )} hover:bg-gray-500 hover:text-white`}
           >
             <div className="flex items-center">
               <div
@@ -287,4 +299,4 @@ export function WalletDropdown() {
       )}
     </Dropdown>
   );
-} 
+}
