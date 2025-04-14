@@ -1,0 +1,63 @@
+@startuml contract_overview
+
+' Use simple styling
+skinparam BackgroundColor #F8EBE4
+skinparam ArrowColor #333333
+skinparam NodeColor #F5F5F5
+skinparam shadowing false
+
+' Main nodes with simple descriptions
+node "RealEstateNFT" as nft #lightskyblue
+node "Regulator" as reg #mistyrose
+node "Vault" as vault #lightgreen
+node "BasketToken" as token #gold
+
+' Attach notes to nodes from outside
+note right of nft #white
+  • Represents real estate as NFTs
+  • Each token = one property
+  • Admin creates properties
+  • Checks with Regulator before transfers
+end note
+
+note right of reg #white
+  • Approves all property transfers
+  • Handles property sales  
+  • Acts as escrow between seller and buyer
+  • Ensures regulatory compliance
+end note
+
+note right of vault #white
+  • Stores property NFTs
+  • Converts properties to tokens
+  • Allows redemption of properties
+  • Manages tokenization ratio
+end note
+
+note right of token #white
+  • ERC20 token for fractional ownership
+  • Each token = small piece of property
+  • Can be freely traded
+  • Tokens can be redeemed for full property
+end note
+
+' Simple flows with basic descriptions
+nft --> reg : "Asks: Can this NFT be transferred?"
+reg --> nft : "Answers: Yes/No"
+
+nft ---> vault : "Property goes in"
+vault --> token : "Tokens come out"
+
+reg <-- nft : "Follows transfer rules"
+token <-- vault : "Creates tokens when property deposited"
+
+' Users and their interactions
+actor "Admin" as admin #white
+actor "Property Owner" as owner #white
+actor "Investor" as investor #white
+
+admin --> nft : "Creates property NFTs"
+owner --> reg : "Uses for selling property"
+owner --> vault : "Tokenizes property"
+investor --> token : "Buys fractional shares"
+@enduml

@@ -1,0 +1,86 @@
+@startuml Property_Tokenization_Process
+
+actor "NFT Owner" as owner
+participant "RealEstateNFT" as nft
+participant "Vault" as vault
+participant "BasketToken" as token
+actor "Token Holder" as holder
+
+== Property Tokenization Process ==
+
+group Step 1: Approve NFT for Vault
+  owner -> nft: approve(vaultAddress, tokenId)
+  activate nft
+    nft -> nft: _approve(vaultAddress, tokenId)
+    nft --> owner: emit Approval(owner, vaultAddress, tokenId)
+  deactivate nft
+end
+
+group Step 2: Deposit NFT to Vault
+  owner -> vault: depositNFT(tokenId, tokenAmount)
+  activate vault
+    vault -> nft: safeTransferFrom(owner, address(this), tokenId)
+    activate nft
+      nft -> nft: _transfer(owner, vault, tokenId)
+      nft --> vault: emit Transfer(owner, vault, tokenId)
+    deactivate nft
+    
+    vault -> vault: _vaultedNFTs[tokenId] = true
+    vault -> vault: _tokenAmounts[tokenId] = tokenAmount
+    
+    vault -> token: mint(owner, tokenAmount)
+    activate token
+      token -> token: _mint(owner, tokenAmount)
+      token --> owner: emit Transfer(address(0), owner, tokenAmount)
+    deactivate token
+    
+    vault --> owner: emit NFTDeposited(owner, tokenId, tokenAmount)
+  deactivate vault
+end
+
+== Token Circulation ==
+
+owner -> token: transfer(holder, partialAmount)
+activate token
+  token -> token: _transfer(owner, holder, partialAmount)
+  token --> holder: emit Transfer(owner, holder, partialAmount)
+deactivate token
+
+note right
+  Tokens now represent fractional ownership of the property
+  and can be freely transferred between users
+end note
+
+== NFT Redemption Process ==
+
+group Step 1: Approve Tokens for Burning
+  owner -> token: approve(vaultAddress, tokenAmount)
+  activate token
+    token -> token: _approve(vaultAddress, tokenAmount)
+    token --> owner: emit Approval(owner, vaultAddress, tokenAmount)
+  deactivate token
+end
+
+group Step 2: Redeem NFT from Vault
+  owner -> vault: redeemNFT(tokenId)
+  activate vault
+    vault -> token: burn(owner, tokenAmount)
+    activate token
+      token -> token: _burn(owner, tokenAmount)
+      token --> vault: emit Transfer(owner, address(0), tokenAmount)
+    deactivate token
+    
+    vault -> vault: _vaultedNFTs[tokenId] = false
+    vault -> vault: delete _tokenAmounts[tokenId]
+    
+    vault -> nft: safeTransferFrom(address(this), owner, tokenId)
+    activate nft
+      nft -> nft: _transfer(vault, owner, tokenId)
+      nft --> vault: emit Transfer(vault, owner, tokenId)
+    deactivate nft
+    
+    vault --> owner: emit NFTRedeemed(owner, tokenId, tokenAmount)
+  deactivate vault
+end
+
+@enduml 

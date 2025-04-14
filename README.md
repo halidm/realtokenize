@@ -58,9 +58,14 @@ The demo creates four wallets:
 
 ## Smart Contracts
 
-- **RealEstateNFT**: ERC721 token representing real estate properties
-- **BasketToken**: ERC20 token representing fractional ownership
-- **Vault**: Contract for depositing NFTs and minting basket tokens
+1. **RealEstateNFT**: ERC721 token representing real estate properties
+2. **Regulator**: Controls property transfers and provides escrow services for sales
+3. **Vault**: Holds NFTs and issues corresponding tokens
+4. **BasketToken**: ERC20 token representing fractional ownership of properties
+
+## Docs
+
+For detailed documentation about the smart contracts and system architecture, see [Contract Overview](./docs/contract-overview.md). All documentation files are located in the `./docs` folder.
 
 ## License
 

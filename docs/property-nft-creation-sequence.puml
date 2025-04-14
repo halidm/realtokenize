@@ -1,0 +1,38 @@
+@startuml NFT_Creation_Process
+
+actor "Admin" as admin
+participant "RealEstateNFT" as nft
+participant "Regulator" as reg
+
+== NFT Creation Process ==
+
+admin -> nft: mint(adminAddress, metadataURI)
+activate nft
+  nft -> nft: _safeMint(adminAddress, tokenId)
+  nft -> nft: _tokenURIs[tokenId] = metadataURI
+  nft --> admin: emit Transfer(0x0, adminAddress, tokenId)
+  nft --> admin: emit TokenURISet(tokenId, metadataURI)
+deactivate nft
+
+note right
+  The NFT is now created with:
+  - Ownership assigned to admin
+  - Metadata URI containing property details
+  - A unique tokenId for the property
+end note
+
+== Property Configuration (Optional) ==
+
+admin -> nft: setPropertyPrice(tokenId, price)
+activate nft
+  nft -> nft: propertyPrices[tokenId] = price
+  nft --> admin: emit PropertyPriceSet(tokenId, price)
+deactivate nft
+
+admin -> nft: setRentalRate(tokenId, dailyRate)
+activate nft
+  nft -> nft: rentalRates[tokenId] = dailyRate
+  nft --> admin: emit RentalRateSet(tokenId, dailyRate)
+deactivate nft
+
+@enduml 

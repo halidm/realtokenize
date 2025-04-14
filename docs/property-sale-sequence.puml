@@ -1,0 +1,72 @@
+@startuml Property_Sale_Process
+
+actor "Seller" as seller
+actor "Buyer" as buyer
+actor "Regulator Owner" as regOwner
+participant "RealEstateNFT" as nft
+participant "Regulator" as reg
+
+== Property Sale Process ==
+
+group Step 1: Create Listing
+  seller -> reg: createListingWithoutPreApproval(tokenId, buyerAddress, price)
+  activate reg
+    reg -> nft: ownerOf(tokenId)
+    nft --> reg: seller
+    
+    reg -> reg: saleEscrows[tokenId] = { seller, buyer, tokenId, price, false, false }
+    reg -> reg: pendingSaleTokenIds.push(tokenId)
+    reg -> reg: approvedTransfers[tokenId][seller][address(this)] = true
+    reg --> seller: emit PropertyListedForSale(tokenId, seller, buyer, price)
+  deactivate reg
+end
+
+group Step 2: Approve NFT for Transfer
+  seller -> nft: approve(regulatorAddress, tokenId)
+  activate nft
+    nft -> nft: _approve(regulatorAddress, tokenId)
+    nft --> seller: emit Approval(seller, regulatorAddress, tokenId)
+  deactivate nft
+end
+
+group Step 3: Deposit NFT to Escrow
+  seller -> reg: depositListedNFT(tokenId)
+  activate reg
+    reg -> nft: transferFrom(seller, address(this), tokenId)
+    activate nft
+      nft -> nft: _transfer(seller, address(this), tokenId)
+      nft --> reg: emit Transfer(seller, address(this), tokenId)
+    deactivate nft
+    
+    reg -> reg: saleEscrows[tokenId].nftDeposited = true
+    reg --> seller: emit NFTDepositedToEscrow(tokenId, seller)
+  deactivate reg
+end
+
+group Step 4: Buyer Makes Payment
+  buyer -> reg: depositPayment(tokenId) {value: price}
+  activate reg
+    reg -> reg: saleEscrows[tokenId].paymentReceived = true
+    reg --> buyer: emit PaymentReceivedInEscrow(tokenId, buyer, price)
+    
+    reg -> reg: _completeSale(tokenId) 
+    reg -> reg: approvedTransfers[tokenId][address(this)][buyer] = true
+    
+    reg -> nft: transferFrom(address(this), buyer, tokenId)
+    activate nft
+      nft -> nft: _transfer(address(this), buyer, tokenId)
+      nft --> reg: emit Transfer(address(this), buyer, tokenId)
+    deactivate nft
+    
+    reg -> seller: transfer(price)
+    reg --> buyer: emit SaleCompleted(tokenId, seller, buyer, price)
+  deactivate reg
+end
+
+note right
+  Alternative paths:
+  - Seller can cancel listing before payment (cancelSale)
+  - Regulator can manually complete the sale (completeSale)
+end note
+
+@enduml 
