@@ -13,7 +13,7 @@ The system consists of four primary smart contracts:
 
 ## Contract Relationships
 
-![System Architecture](./system_architecture.png)
+![System Overview](./images/contract-overview.png)
 
 The contracts work together to enable the following key processes:
 
@@ -22,19 +22,23 @@ The contracts work together to enable the following key processes:
 3. Property sales through escrow
 4. Fractional ownership through tokenization
 
+> PUML Diagram: [Contract Overview](./contract-overview.puml)
+
 ## Key Processes
 
 ### NFT Creation Process
 
-![NFT Creation](./nft_creation_sequence.png)
+![NFT Creation](./images/property-nft-creation-sequence.png)
 
 1. Admin mints a new NFT with property metadata
 2. Property details (price, rental rate) can be configured
 3. NFT represents ownership of a unique property
 
+> PUML Diagram: [Property NFT Creation Sequence](./property-nft-creation-sequence.puml)
+
 ### Property Sale Process
 
-![Property Sale](./property_sale_sequence.png)
+![Property Sale](./images/property-sale-sequence.png)
 
 1. Seller creates a listing without pre-approval, specifying buyer and price
 2. Seller approves the Regulator contract to transfer their NFT
@@ -42,15 +46,19 @@ The contracts work together to enable the following key processes:
 4. Buyer sends payment to the Regulator
 5. Upon payment, the Regulator transfers the NFT to the buyer and sends funds to the seller
 
+> PUML Diagram: [Property Sale Sequence](./property-sale-sequence.puml)
+
 ### Property Tokenization Process
 
-![Property Tokenization](./property_tokenization_sequence.png)
+![Property Tokenization](./images/property-tokenization-sequence.png)
 
 1. NFT owner approves the Vault to transfer their NFT
 2. Owner deposits the NFT into the Vault, specifying token amount
 3. Vault holds the NFT and mints BasketTokens to the owner
 4. Owner can transfer tokens to investors, creating fractional ownership
 5. Anyone holding all tokens can redeem the NFT from the Vault
+
+> PUML Diagram: [Property Tokenization Sequence](./property-tokenization-sequence.puml)
 
 ## Contract Details
 
@@ -98,36 +106,3 @@ For proper functioning, the contracts should be deployed in this order:
 3. Deploy RealEstateNFT (with Regulator address)
 4. Deploy Vault (with NFT and BasketToken addresses)
 5. Set Vault address in BasketToken 
-
-## Diagrams
-
-The system architecture and processes are illustrated through the following diagrams:
-
-1. [Contract Overview](./contract-overview.puml): A high-level visualization of the smart contract ecosystem showing:
-   - Core contracts and their relationships
-   - Data flow between components
-   - Key interactions and dependencies
-   - Security boundaries and access control points
-
-2. [Property NFT Creation Sequence](./property-nft-creation-sequence.puml): Details the step-by-step process of creating a new property NFT:
-   - Admin minting process
-   - Property metadata configuration
-   - Price and rental rate setting
-   - Verification and validation steps
-   - Error handling scenarios
-
-3. [Property Sale Sequence](./property-sale-sequence.puml): Illustrates the complete property sale workflow:
-   - Listing creation and approval
-   - Buyer interaction and payment flow
-   - Regulator verification process
-   - NFT transfer and escrow handling
-   - Sale completion and fund distribution
-   - Alternative paths for cancellation
-
-4. [Property Tokenization Sequence](./property-tokenization-sequence.puml): Shows the process of converting a property NFT into tradable tokens:
-   - NFT approval and vault deposit
-   - Token minting and distribution
-   - Secondary market trading flow
-   - Redemption process
-   - Regulatory compliance checks
-   - Token holder interactions
